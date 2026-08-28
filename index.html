@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="id" class="dark" id="htmlRoot">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisis Kualitas Air Terhadap Potensi Kerusakan Terumbu Karang</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Tailwind CSS v3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: { colors: { darkbg: '#020617' } }
+            }
+        }
+    </script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- PapaParse -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; transition: background-color 0.3s, color 0.3s; }
+        .leaflet-popup-content-wrapper { border-radius: 8px; width: 520px; max-height: 480px; overflow-y: auto; }
+        th, td { white-space: nowrap; }
+
+        /* Custom Leaflet Popup menyesuaikan mode gelap/terang Tailwind */
+        .dark .leaflet-popup-content-wrapper, 
+        .dark .leaflet-popup-tip {
+            background-color: #0f172a !important; /* bg-slate-900 */
+            color: #f8fafc !important; /* text-slate-50 */
+            border: 1px solid #334155; /* border-slate-700 */
+        }
+        .dark .leaflet-container a.leaflet-popup-close-button {
+            color: #94a3b8 !important; /* text-slate-400 */
+        }
+        .dark .leaflet-container a.leaflet-popup-close-button:hover {
+            color: #f8fafc !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 flex flex-col h-screen overflow-hidden transition-colors duration-300" id="mainBody">
+
+    <!-- Top Navbar -->
+    <header class="bg-slate-900 text-slate-100 border-b border-slate-800 h-14 flex items-center justify-between px-6 z-20 shrink-0 transition-colors duration-300" id="topHeader">
+        <div class="flex items-center space-x-3">
+            <div class="bg-white p-1 rounded-lg shadow flex items-center justify-center w-9 h-9 shrink-0 overflow-hidden">
+                <img src="klh.png" alt="Logo KLHK" class="w-full h-full object-contain">
+            </div>
+            <div>
+                <h1 class="font-bold text-sm tracking-wide text-cyan-400" id="headerTitleText">Analisis Indeks Kualitas Air Laut Terhadap Status Kelayakan Terumbu Karang</h1>
+                <p class="text-[11px] text-cyan-300 font-medium" id="loadStatus">Memuat seluruh file CSV...</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="toggleTheme()" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-semibold flex items-center space-x-1.5 transition shadow" id="themeBtn">
+                <i class="fa-solid fa-moon" id="themeIcon"></i>
+                <span id="themeText">Mode Terang</span>
+            </button>
+            <div class="flex items-center bg-slate-800 text-slate-200 px-3 py-1 rounded-lg border border-slate-700" id="yearBox">
+                <label for="yearSelect" class="text-xs mr-2 font-semibold"><i class="fa-solid fa-calendar-days mr-1"></i> Tahun:</label>
+                <select id="yearSelect" class="bg-slate-900 text-cyan-300 font-bold text-xs px-2 py-1 rounded focus:outline-none border border-slate-700" onchange="filterAndUpdate()">
+                    <option value="ALL">Semua Tahun</option>
+                </select>
+            </div>
+            <div class="flex items-center bg-slate-800 text-slate-200 px-3 py-1 rounded-lg border border-slate-700" id="periodBox">
+                <label for="periodSelect" class="text-xs mr-2 font-semibold"><i class="fa-solid fa-clock mr-1"></i> Periode:</label>
+                <select id="periodSelect" class="bg-slate-900 text-cyan-300 font-bold text-xs px-2 py-1 rounded focus:outline-none border border-slate-700" onchange="filterAndUpdate()">
+                    <option value="ALL">Semua Periode</option>
+                    <option value="1">Periode 1</option>
+                    <option value="2">Periode 2</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <div class="flex flex-1 overflow-hidden">
+        <div class="flex-1 flex flex-col h-full overflow-hidden">
+            <!-- Map Container -->
+            <div id="map" class="flex-1 w-full z-10 min-h-[45%]" style="background-color: #0b132b;"></div>
+            
+            <!-- Bottom Section: Complete Parameter Table -->
+            <div class="h-80 bg-slate-900 text-slate-100 border-t border-slate-800 flex flex-col shrink-0 z-20 transition-colors duration-300" id="tableContainer">
+                <div class="px-4 py-2 bg-slate-900/90 border-b border-slate-800 flex justify-between items-center transition-colors duration-300" id="tableHeaderBar">
+                    <h3 class="font-bold text-xs text-cyan-400 uppercase tracking-wider"><i class="fa-solid fa-table mr-1"></i> Tabel Parameter Kualitas Air Laut terhadap Status Kelayakan Terumbu Karang</h3>
+                    <div class="flex items-center space-x-3">
+                        <span id="tableCount" class="text-xs text-cyan-300 font-medium">Memuat data...</span>
+                        <div class="flex items-center space-x-1" id="paginationControls">
+                            <button onclick="prevPage()" id="prevBtn" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 px-2.5 py-0.5 rounded border border-slate-700 text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-left"></i></button>
+                            <span id="pageInfo" class="text-xs font-semibold px-1">1 / 1</span>
+                            <button onclick="nextPage()" id="nextBtn" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 px-2.5 py-0.5 rounded border border-slate-700 text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-auto p-2">
+                    <table class="w-full text-left text-xs border-collapse" id="mainTable">
+                        <thead>
+                            <tr class="bg-slate-800 text-cyan-300 sticky top-0 font-semibold z-10 transition-colors duration-300" id="tableHeadTr">
+                                <th class="p-2.5 border-b border-slate-700">Kode</th>
+                                <th class="p-2.5 border-b border-slate-700">Nama Lokasi</th>
+                                <th class="p-2.5 border-b border-slate-700">Provinsi</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Tanggal Pantau</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">TSS</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status TSS</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">DO</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status DO</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Minyak & Lemak</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status Minyak & Lemak</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Amonia Total</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status Amonia</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Ortofosfat</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status Ortofosfat</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">BOD</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status BOD</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Suhu</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status Suhu</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Salinitas</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status Salinitas</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Kecerahan</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status Kecerahan</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Kekeruhan</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status Kekeruhan</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">PAH</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status PAH</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Pestisida / Herbistida</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status Pestisida</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Pestisida (Endrin)</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status Endrin</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Fecal Coliform</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status Fecal Coliform</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">DIC</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Status DIC</th>
+                                <th class="p-2.5 border-b border-slate-700 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dataTableBody" class="divide-y divide-slate-800 font-medium"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Interactive Chart Panel -->
+        <aside class="w-[440px] bg-slate-900 text-slate-100 border-l border-slate-800 flex flex-col shrink-0 z-20 shadow-2xl transition-colors duration-300" id="rightAside">
+            <div class="p-3 border-b border-slate-800 bg-slate-900/90 flex justify-between items-center transition-colors duration-300" id="asideHeader">
+                <h3 class="font-bold text-xs text-cyan-400 uppercase tracking-wider"><i class="fa-solid fa-chart-bar mr-1"></i> Grafik Rata-Rata vs Baku Mutu</h3>
+                <select id="paramSelect" class="bg-slate-800 text-cyan-300 font-semibold text-xs px-2 py-1 rounded border border-slate-700 focus:outline-none" onchange="updateChart()">
+                    <option value="SUHU" selected>Suhu (°C)</option>
+                    <option value="SALINITAS">Salinitas (ppt)</option>
+                    <option value="DO (mg/L)">DO (mg/L)</option>
+                    <option value="TSS (mg/L)">TSS (mg/L)</option>
+                    <option value="MINYAK & LEMAK (mg/L)">Minyak & Lemak (mg/L)</option>
+                    <option value="AMONIA TOTAL (mg/L)">Amonia Total (mg/L)</option>
+                    <option value="ORTOFOSFAT (PO4-P) (mg/L)">Ortofosfat (PO4-P) (mg/L)</option>
+                    <option value="BOD (mg/L)">BOD (mg/L)</option>
+                    <option value="KECERAHAN">Kecerahan (m)</option>
+                    <option value="KEKERUHAN (NTU)">Kekeruhan (NTU)</option>
+                    <option value="PAH (Polisiklik Aromatika Hidrokarbon)">PAH</option>
+                    <option value="PESTISIDA/HERBISIDA">Pestisida/Herbisida</option>
+                    <option value="PESTISIDA (ENDRIN)">Pestisida (Endrin)</option>
+                    <option value="FECAL COLIFORM">Fecal Coliform</option>
+                    <option value="(DIC) DISSOLVED INORGANIC CARBON">DIC</option>
+                </select>
+            </div>
+            <div class="p-4 flex-1 flex flex-col space-y-4 overflow-y-auto">
+                <div class="bg-slate-800/60 p-3 rounded-lg border border-slate-700 flex-1 flex flex-col transition-colors duration-300" id="chartCard">
+                    <p class="text-xs mb-2 font-medium" id="chartDesc">Perbandingan nilai rata-rata per provinsi terhadap standar Baku Mutu.</p>
+                    <div class="relative flex-1 w-full min-h-[260px]">
+                        <canvas id="paramChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700 space-y-1.5 text-xs transition-colors duration-300" id="infoCard">
+                    <p class="font-bold text-cyan-400 text-sm"><i class="fa-solid fa-circle-info mr-1"></i> Keterangan Grafik:</p>
+                    <p class="text-xs font-medium" id="chartInfoText">Garis merah putus-putus menunjukkan batas <strong>Baku Mutu Maksimum/Minimum</strong> masing-masing parameter untuk ekosistem terumbu karang.</p>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map', { zoomControl: false }).setView([-2.5, 118.0], 5);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        const esriImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri', maxZoom: 18
+        });
+
+        const googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], attribution: '&copy; Google Maps'
+        });
+
+        const googleStreets = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            maxZoom: 20, subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], attribution: '&copy; Google Maps'
+        });
+
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19, attribution: '&copy; OpenStreetMap'
+        });
+
+        const cartoDark = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CARTO', maxZoom: 19
+        });
+
+        esriImagery.addTo(map);
+
+        const baseLayers = {
+            "Esri World Imagery": esriImagery,
+            "Google Satellite": googleSat,
+            "Google Streets": googleStreets,
+            "OpenStreetMap": osmLayer,
+            "CartoDB Dark": cartoDark
+        };
+
+        L.control.layers(baseLayers, null, { position: 'topright' }).addTo(map);
+
+        let globalData = [];
+        let filteredDataCache = [];
+        let markersLayer = L.layerGroup().addTo(map);
+        let myChart = null;
+        let isDarkMode = true;
+
+        let currentPage = 1;
+        const rowsPerPage = 50;
+
+        const bakuMutuStandards = {
+            "SUHU": 30, 
+            "SALINITAS": 34,
+            "DO (mg/L)": 5, 
+            "TSS (mg/L)": 20, 
+            "MINYAK & LEMAK (mg/L)": 1, 
+            "AMONIA TOTAL (mg/L)": 0.3, 
+            "ORTOFOSFAT (PO4-P) (mg/L)": 0.015, 
+            "BOD (mg/L)": 5, 
+            "KECERAHAN": 3, 
+            "KEKERUHAN (NTU)": 5,
+            "PAH (Polisiklik Aromatika Hidrokarbon)": 0.003,
+            "PESTISIDA/HERBISIDA": 0.01,
+            "PESTISIDA (ENDRIN)": 0.002,
+            "FECAL COLIFORM": 100,
+            "(DIC) DISSOLVED INORGANIC CARBON": 15
+        };
+
+        function formatStatus(statusText) {
+            if (!statusText) return '-';
+            let clean = statusText.trim();
+            if (clean.toLowerCase().includes('tidak')) {
+                return `<span class="text-red-400 font-bold">${clean}</span>`;
+            } else if (clean.toLowerCase().includes('layak') || clean.toLowerCase().includes('sesuai')) {
+                return `<span class="text-cyan-400 font-semibold">${clean}</span>`;
+            }
+            return clean;
+        }
+
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            const htmlRoot = document.getElementById('htmlRoot');
+            const mainBody = document.getElementById('mainBody');
+            const topHeader = document.getElementById('topHeader');
+            const tableContainer = document.getElementById('tableContainer');
+            const tableHeaderBar = document.getElementById('tableHeaderBar');
+            const tableHeadTr = document.getElementById('tableHeadTr');
+            const rightAside = document.getElementById('rightAside');
+            const asideHeader = document.getElementById('asideHeader');
+            const chartCard = document.getElementById('chartCard');
+            const infoCard = document.getElementById('infoCard');
+            const themeBtn = document.getElementById('themeBtn');
+            const themeIcon = document.getElementById('themeIcon');
+            const themeText = document.getElementById('themeText');
+
+            if (isDarkMode) {
+                htmlRoot.classList.add('dark');
+                mainBody.className = "bg-slate-950 text-slate-100 flex flex-col h-screen overflow-hidden transition-colors duration-300";
+                topHeader.className = "bg-slate-900 text-slate-100 border-b border-slate-800 h-14 flex items-center justify-between px-6 z-20 shrink-0 transition-colors duration-300";
+                tableContainer.className = "h-80 bg-slate-900 text-slate-100 border-t border-slate-800 flex flex-col shrink-0 z-20 transition-colors duration-300";
+                tableHeaderBar.className = "px-4 py-2 bg-slate-900/90 border-b border-slate-800 flex justify-between items-center transition-colors duration-300";
+                tableHeadTr.className = "bg-slate-800 text-cyan-300 sticky top-0 font-semibold z-10 transition-colors duration-300";
+                rightAside.className = "w-[440px] bg-slate-900 text-slate-100 border-l border-slate-800 flex flex-col shrink-0 z-20 shadow-2xl transition-colors duration-300";
+                asideHeader.className = "p-3 border-b border-slate-800 bg-slate-900/90 flex justify-between items-center transition-colors duration-300";
+                chartCard.className = "bg-slate-800/60 p-3 rounded-lg border border-slate-700 flex-1 flex flex-col transition-colors duration-300";
+                infoCard.className = "bg-slate-800/80 p-3 rounded-lg border border-slate-700 space-y-1.5 text-xs transition-colors duration-300";
+                themeIcon.className = "fa-solid fa-moon";
+                themeText.innerText = "Mode Terang";
+            } else {
+                htmlRoot.classList.remove('dark');
+                mainBody.className = "bg-slate-50 text-slate-800 flex flex-col h-screen overflow-hidden transition-colors duration-300";
+                topHeader.className = "bg-white text-slate-800 border-b border-slate-200 h-14 flex items-center justify-between px-6 z-20 shrink-0 transition-colors duration-300";
+                tableContainer.className = "h-80 bg-white text-slate-800 border-t border-slate-200 flex flex-col shrink-0 z-20 transition-colors duration-300";
+                tableHeaderBar.className = "px-4 py-2 bg-slate-100 border-b border-slate-200 flex justify-between items-center transition-colors duration-300";
+                tableHeadTr.className = "bg-slate-100 text-cyan-700 sticky top-0 font-semibold z-10 transition-colors duration-300";
+                rightAside.className = "w-[440px] bg-white text-slate-800 border-l border-slate-200 flex flex-col shrink-0 z-20 shadow-2xl transition-colors duration-300";
+                asideHeader.className = "p-3 border-b border-slate-200 bg-slate-100 flex justify-between items-center transition-colors duration-300";
+                chartCard.className = "bg-slate-50 p-3 rounded-lg border border-slate-200 flex-1 flex flex-col transition-colors duration-300";
+                infoCard.className = "bg-slate-100 p-3 rounded-lg border border-slate-200 space-y-1.5 text-xs transition-colors duration-300";
+                themeIcon.className = "fa-solid fa-sun";
+                themeText.innerText = "Mode Gelap";
+            }
+            renderMapAndTable();
+            if (myChart) updateChart();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const csvFilename = "Database_IKAL_SITALA_Dummy_2019_2026.csv"; 
+            
+            Papa.parse(csvFilename, {
+                download: true,
+                header: true,
+                delimiter: ";",
+                skipEmptyLines: true,
+                complete: function(results) {
+                    globalData = results.data.map(row => {
+                        let cleanRow = {};
+                        for (let key in row) {
+                            let cleanKey = key.trim().replace(/^\uFEFF/, '');
+                            cleanRow[cleanKey] = row[key];
+                        }
+                        return cleanRow;
+                    });
+                    
+                    document.getElementById('loadStatus').innerText = `Berhasil memuat ${globalData.length} data pemantauan!`;
+                    initYears();
+                    filterAndUpdate();
+                    setTimeout(() => { map.invalidateSize(); }, 300);
+                },
+                error: function(err) {
+                    document.getElementById('loadStatus').innerText = `Gagal memuat file CSV. Pastikan file tersedia!`;
+                    console.error(err);
+                }
+            });
+        });
+
+        function initYears() {
+            let yearsSet = new Set();
+            globalData.forEach(d => {
+                let tgl = d['TANGGAL PEMANTAUAN'] || '';
+                let parts = tgl.split('/');
+                if (parts.length === 3) yearsSet.add(parts[2]);
+            });
+            let sortedYears = Array.from(yearsSet).sort();
+            let yearSelect = document.getElementById('yearSelect');
+            yearSelect.innerHTML = '<option value="ALL">Semua Tahun</option>';
+            sortedYears.forEach(yr => {
+                yearSelect.innerHTML += `<option value="${yr}">${yr}</option>`;
+            });
+        }
+
+        function filterAndUpdate() {
+            if (globalData.length === 0) return;
+            const selectedYear = document.getElementById('yearSelect').value;
+            const selectedPeriod = document.getElementById('periodSelect').value;
+
+            filteredDataCache = globalData.filter(d => {
+                let tgl = d['TANGGAL PEMANTAUAN'] || '';
+                let yr = tgl.split('/')[2];
+                let per = String(d['PERIODE PEMANTAUAN'] || '').trim();
+
+                let matchYear = (selectedYear === 'ALL' || yr === selectedYear);
+                let matchPeriod = (selectedPeriod === 'ALL' || per === selectedPeriod);
+                return matchYear && matchPeriod && d['LATITUDE'] && d['LONGITUDE'];
+            });
+
+            currentPage = 1;
+            renderMapAndTable();
+            updateChart();
+        }
+
+        function renderMapAndTable() {
+            markersLayer.clearLayers();
+
+            filteredDataCache.forEach((p) => {
+                let lat = parseFloat(String(p['LATITUDE'] || '').replace(',', '.'));
+                let lon = parseFloat(String(p['LONGITUDE'] || '').replace(',', '.'));
+                if (isNaN(lat) || isNaN(lon)) return;
+
+                let tss = p['TSS (mg/L)'] || '-';
+                let stTss = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER TSS  (mg/L)'] || '-';
+                let doVal = p['DO (mg/L)'] || '-';
+                let stDo = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER OKSIGEN TERLARUT  (mg/L)'] || '-';
+                let minyak = p['MINYAK & LEMAK (mg/L)'] || '-';
+                let stMinyak = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER MINYAK DAN LEMAK  (mg/L)'] || '-';
+                let amonia = p['AMONIA TOTAL (mg/L)'] || '-';
+                let stAmonia = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER AMONIA TOTAL mg/L)'] || '-';
+                let fosfat = p['ORTOFOSFAT (PO4-P) (mg/L)'] || '-';
+                let stFosfat = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER PO4- (mg/L)'] || '-';
+                let bod = p['BOD (mg/L)'] || '-';
+                let stBod = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER BOD (mg/L)'] || '-';
+                let suhu = p['SUHU'] || '-';
+                let stSuhu = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER SUHU'] || '-';
+                let sal = p['SALINITAS'] || '-';
+                let stSal = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER SALINITAS'] || '-';
+                let kecerahan = p['KECERAHAN'] || '-';
+                let stKecerahan = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER KECERAHAN'] || '-';
+                let kekeruhan = p['KEKERUHAN (NTU)'] || '-';
+                let stKekeruhan = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER KEKERUHAN (NTU)'] || '-';
+                
+                let pah = p['PAH (Polisiklik Aromatika Hidrokarbon)'] || '-';
+                let stPah = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER PAH'] || '-';
+                let pestisida = p['PESTISIDA/HERBISIDA'] || '-';
+                let stPestisida = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER PESTISIDA/HERBISIDA'] || '-';
+                let endrin = p['PESTISIDA (ENDRIN)'] || '-';
+                let stEndrin = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER PESTISIDA (ENDRIN)'] || '-';
+                let fecal = p['FECAL COLIFORM'] || '-';
+                let stFecal = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER FECAL COLIFORM'] || '-';
+                let dic = p['(DIC) DISSOLVED INORGANIC CARBON'] || '-';
+                let stDic = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER (DIC) DISSOLVED INORGANIC CARBON'] || '-';
+
+                let circleMarker = L.circleMarker([lat, lon], {
+                    radius: 5,
+                    fillColor: "#06b6d4",
+                    color: "#0e7490",
+                    weight: 1.5,
+                    fillOpacity: 0.85
+                });
+
+                circleMarker.bindPopup(`
+                    <div class="p-2 text-xs">
+                        <h4 class="font-bold text-cyan-400 text-sm mb-1">${p['NAMA LOKASI'] || 'Lokasi'} (${p['KODE LOKASI'] || ''})</h4>
+                        <p class="text-[11px] mb-2 font-medium">Provinsi: ${p['PROVINSI'] || '-'} | Tgl: ${p['TANGGAL PEMANTAUAN'] || '-'}</p>
+                        <div class="space-y-1.5 p-2.5 rounded-lg border max-h-64 overflow-y-auto ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}">
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">TSS:</span> <span class="font-bold">${tss} mg/L</span> <span>${formatStatus(stTss)}</span></div>
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">DO:</span> <span class="font-bold">${doVal} mg/L</span> <span>${formatStatus(stDo)}</span></div>
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">Minyak & Lemak:</span> <span class="font-bold">${minyak} mg/L</span> <span>${formatStatus(stMinyak)}</span></div>
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">Amonia Total:</span> <span class="font-bold">${amonia} mg/L</span> <span>${formatStatus(stAmonia)}</span></div>
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">Ortofosfat (PO4):</span> <span class="font-bold">${fosfat} mg/L</span> <span>${formatStatus(stFosfat)}</span></div>
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">BOD:</span> <span class="font-bold">${bod} mg/L</span> <span>${formatStatus(stBod)}</span></div>
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">Suhu:</span> <span class="font-bold">${suhu} °C</span> <span>${formatStatus(stSuhu)}</span></div>
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">Salinitas:</span> <span class="font-bold">${sal} ppt</span> <span>${formatStatus(stSal)}</span></div>
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">Kecerahan:</span> <span class="font-bold">${kecerahan} m</span> <span>${formatStatus(stKecerahan)}</span></div>
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">Kekeruhan:</span> <span class="font-bold">${kekeruhan} NTU</span> <span>${formatStatus(stKekeruhan)}</span></div>
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">PAH:</span> <span class="font-bold">${pah}</span> <span>${formatStatus(stPah)}</span></div>
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">Pestisida/Herbisida:</span> <span class="font-bold">${pestisida}</span> <span>${formatStatus(stPestisida)}</span></div>
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">Pestisida (Endrin):</span> <span class="font-bold">${endrin}</span> <span>${formatStatus(stEndrin)}</span></div>
+                            <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">Fecal Coliform:</span> <span class="font-bold">${fecal}</span> <span>${formatStatus(stFecal)}</span></div>
+                            <div class="flex justify-between items-center pt-0.5"><span class="opacity-75">DIC:</span> <span class="font-bold">${dic}</span> <span>${formatStatus(stDic)}</span></div>
+                        </div>
+                    </div>
+                `);
+
+                markersLayer.addLayer(circleMarker);
+            });
+
+            let totalPages = Math.ceil(filteredDataCache.length / rowsPerPage) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            let startIndex = (currentPage - 1) * rowsPerPage;
+            let endIndex = startIndex + rowsPerPage;
+            let paginatedData = filteredDataCache.slice(startIndex, endIndex);
+
+            let tableHtml = '';
+            paginatedData.forEach((p) => {
+                let lat = parseFloat(String(p['LATITUDE'] || '').replace(',', '.'));
+                let lon = parseFloat(String(p['LONGITUDE'] || '').replace(',', '.'));
+                if (isNaN(lat) || isNaN(lon)) return;
+
+                let tss = p['TSS (mg/L)'] || '-';
+                let stTss = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER TSS  (mg/L)'] || '-';
+                let doVal = p['DO (mg/L)'] || '-';
+                let stDo = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER OKSIGEN TERLARUT  (mg/L)'] || '-';
+                let minyak = p['MINYAK & LEMAK (mg/L)'] || '-';
+                let stMinyak = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER MINYAK DAN LEMAK  (mg/L)'] || '-';
+                let amonia = p['AMONIA TOTAL (mg/L)'] || '-';
+                let stAmonia = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER AMONIA TOTAL mg/L)'] || '-';
+                let fosfat = p['ORTOFOSFAT (PO4-P) (mg/L)'] || '-';
+                let stFosfat = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER PO4- (mg/L)'] || '-';
+                let bod = p['BOD (mg/L)'] || '-';
+                let stBod = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER BOD (mg/L)'] || '-';
+                let suhu = p['SUHU'] || '-';
+                let stSuhu = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER SUHU'] || '-';
+                let sal = p['SALINITAS'] || '-';
+                let stSal = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER SALINITAS'] || '-';
+                let kecerahan = p['KECERAHAN'] || '-';
+                let stKecerahan = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER KECERAHAN'] || '-';
+                let kekeruhan = p['KEKERUHAN (NTU)'] || '-';
+                let stKekeruhan = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER KEKERUHAN (NTU)'] || '-';
+                
+                let pah = p['PAH (Polisiklik Aromatika Hidrokarbon)'] || '-';
+                let stPah = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER PAH'] || '-';
+                let pestisida = p['PESTISIDA/HERBISIDA'] || '-';
+                let stPestisida = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER PESTISIDA/HERBISIDA'] || '-';
+                let endrin = p['PESTISIDA (ENDRIN)'] || '-';
+                let stEndrin = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER PESTISIDA (ENDRIN)'] || '-';
+                let fecal = p['FECAL COLIFORM'] || '-';
+                let stFecal = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER FECAL COLIFORM'] || '-';
+                let dic = p['(DIC) DISSOLVED INORGANIC CARBON'] || '-';
+                let stDic = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER (DIC) DISSOLVED INORGANIC CARBON'] || '-';
+
+                let rowHoverClass = isDarkMode ? "hover:bg-slate-800/60 border-slate-800" : "hover:bg-slate-100 border-slate-200";
+                tableHtml += `
+                    <tr class="${rowHoverClass} cursor-pointer transition border-b" onclick="map.setView([${lat},${lon}], 11)">
+                        <td class="p-2.5 text-cyan-600 dark:text-cyan-400 font-bold">${p['KODE LOKASI'] || '-'}</td>
+                        <td class="p-2.5 font-semibold">${p['NAMA LOKASI'] || '-'}</td>
+                        <td class="p-2.5">${p['PROVINSI'] || '-'}</td>
+                        <td class="p-2.5 text-center">${p['TANGGAL PEMANTAUAN'] || '-'}</td>
+                        <td class="p-2.5 text-center">${tss}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stTss)}</td>
+                        <td class="p-2.5 text-center">${doVal}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stDo)}</td>
+                        <td class="p-2.5 text-center">${minyak}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stMinyak)}</td>
+                        <td class="p-2.5 text-center">${amonia}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stAmonia)}</td>
+                        <td class="p-2.5 text-center">${fosfat}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stFosfat)}</td>
+                        <td class="p-2.5 text-center">${bod}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stBod)}</td>
+                        <td class="p-2.5 text-center">${suhu}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stSuhu)}</td>
+                        <td class="p-2.5 text-center">${sal}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stSal)}</td>
+                        <td class="p-2.5 text-center">${kecerahan}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stKecerahan)}</td>
+                        <td class="p-2.5 text-center">${kekeruhan}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stKekeruhan)}</td>
+                        <td class="p-2.5 text-center">${pah}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stPah)}</td>
+                        <td class="p-2.5 text-center">${pestisida}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stPestisida)}</td>
+                        <td class="p-2.5 text-center">${endrin}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stEndrin)}</td>
+                        <td class="p-2.5 text-center">${fecal}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stFecal)}</td>
+                        <td class="p-2.5 text-center">${dic}</td>
+                        <td class="p-2.5 text-center">${formatStatus(stDic)}</td>
+                        <td class="p-2.5 text-center">
+                            <button onclick="event.stopPropagation(); map.setView([${lat},${lon}], 12);" class="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 px-2 py-1 rounded text-xs font-bold transition"><i class="fa-solid fa-location-dot"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('dataTableBody').innerHTML = tableHtml;
+            document.getElementById('tableCount').innerText = `Menampilkan ${startIndex + 1}-${Math.min(endIndex, filteredDataCache.length)} dari ${filteredDataCache.length} data`;
+            document.getElementById('pageInfo').innerText = `${currentPage} / ${totalPages}`;
+            document.getElementById('prevBtn').disabled = (currentPage === 1);
+            document.getElementById('nextBtn').disabled = (currentPage === totalPages);
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderMapAndTable();
+            }
+        }
+
+        function nextPage() {
+            let totalPages = Math.ceil(filteredDataCache.length / rowsPerPage) || 1;
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderMapAndTable();
+            }
+        }
+
+        function updateChart() {
+            const selectedParam = document.getElementById('paramSelect').value;
+            const provMap = {};
+
+            filteredDataCache.forEach(d => {
+                let prov = (d['PROVINSI'] || 'Lainnya').trim();
+                let val = parseFloat(String(d[selectedParam] || '').replace(',', '.'));
+                if (!isNaN(val)) {
+                    if (!provMap[prov]) provMap[prov] = [];
+                    provMap[prov].push(val);
+                }
+            });
+
+            let labels = Object.keys(provMap).sort();
+            let averages = labels.map(prov => {
+                let arr = provMap[prov];
+                let sum = arr.reduce((a, b) => a + b, 0);
+                return Number((sum / arr.length).toFixed(2));
+            });
+
+            let bakuMutuVal = bakuMutuStandards[selectedParam] || 0;
+            let bakuMutuLineData = labels.map(() => bakuMutuVal);
+
+            const ctx = document.getElementById('paramChart').getContext('2d');
+            if (myChart) myChart.destroy();
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: `Rata-rata ${selectedParam}`,
+                            data: averages,
+                            backgroundColor: 'rgba(6, 182, 212, 0.7)',
+                            borderColor: 'rgba(6, 182, 212, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: `Baku Mutu (${bakuMutuVal})`,
+                            data: bakuMutuLineData,
+                            type: 'line',
+                            borderColor: 'rgba(239, 68, 68, 0.9)',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: isDarkMode ? '#f8fafc' : '#334155',
+                                font: { size: 10 }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: isDarkMode ? '#94a3b8' : '#64748b', font: { size: 9 } },
+                            grid: { color: isDarkMode ? '#334155' : '#e2e8f0' }
+                        },
+                        y: {
+                            ticks: { color: isDarkMode ? '#94a3b8' : '#64748b', font: { size: 10 } },
+                            grid: { color: isDarkMode ? '#334155' : '#e2e8f0' }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
