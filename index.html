@@ -30,45 +30,53 @@
         /* Custom Leaflet Popup menyesuaikan mode gelap/terang Tailwind */
         .dark .leaflet-popup-content-wrapper, 
         .dark .leaflet-popup-tip {
-            background-color: #0f172a !important; /* bg-slate-900 */
-            color: #f8fafc !important; /* text-slate-50 */
-            border: 1px solid #334155; /* border-slate-700 */
+            background-color: #0f172a !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155;
         }
         .dark .leaflet-container a.leaflet-popup-close-button {
-            color: #94a3b8 !important; /* text-slate-400 */
+            color: #94a3b8 !important;
         }
         .dark .leaflet-container a.leaflet-popup-close-button:hover {
             color: #f8fafc !important;
         }
+
+        /* Light mode popup styling */
+        html:not(.dark) .leaflet-popup-content-wrapper, 
+        html:not(.dark) .leaflet-popup-tip {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
+        }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 flex flex-col h-screen overflow-hidden transition-colors duration-300" id="mainBody">
+<body class="bg-slate-950 text-slate-100 dark:bg-slate-950 dark:text-slate-100 flex flex-col h-screen overflow-hidden transition-colors duration-300" id="mainBody">
 
     <!-- Top Navbar -->
-    <header class="bg-slate-900 text-slate-100 border-b border-slate-800 h-14 flex items-center justify-between px-6 z-20 shrink-0 transition-colors duration-300" id="topHeader">
+    <header class="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 border-b border-slate-800 dark:border-slate-800 h-14 flex items-center justify-between px-6 z-25 shrink-0 transition-colors duration-300 shadow-sm" id="topHeader">
         <div class="flex items-center space-x-3">
             <div class="bg-white p-1 rounded-lg shadow flex items-center justify-center w-9 h-9 shrink-0 overflow-hidden">
                 <img src="klh.png" alt="Logo KLHK" class="w-full h-full object-contain">
             </div>
             <div>
-                <h1 class="font-bold text-sm tracking-wide text-cyan-400" id="headerTitleText">Analisis Indeks Kualitas Air Laut Terhadap Status Kelayakan Terumbu Karang</h1>
-                <p class="text-[11px] text-cyan-300 font-medium" id="loadStatus">Memuat seluruh file CSV...</p>
+                <h1 class="font-bold text-sm tracking-wide text-cyan-400" id="headerTitleText" style="color: #22d6f1;">Analisis Indeks Kualitas Air Laut Terhadap Status Kelayakan Terumbu Karang</h1>
+                <p class="text-[11px] font-medium" id="loadStatus" style="color: var(--status-color, #67e8f9);">Memuat seluruh file CSV...</p>
             </div>
         </div>
         <div class="flex items-center space-x-3">
-            <button onclick="toggleTheme()" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-semibold flex items-center space-x-1.5 transition shadow" id="themeBtn">
+            <button onclick="toggleTheme()" class="bg-slate-800 hover:bg-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 dark:border-slate-700 text-xs font-semibold flex items-center space-x-1.5 transition shadow" id="themeBtn" style="color: #22d6f1;">
                 <i class="fa-solid fa-moon" id="themeIcon"></i>
                 <span id="themeText">Mode Terang</span>
             </button>
-            <div class="flex items-center bg-slate-800 text-slate-200 px-3 py-1 rounded-lg border border-slate-700" id="yearBox">
+            <div class="flex items-center bg-slate-800 dark:bg-slate-800 text-slate-200 dark:text-slate-200 px-3 py-1 rounded-lg border border-slate-700 dark:border-slate-700 shadow-sm" id="yearBox">
                 <label for="yearSelect" class="text-xs mr-2 font-semibold"><i class="fa-solid fa-calendar-days mr-1"></i> Tahun:</label>
-                <select id="yearSelect" class="bg-slate-900 text-cyan-300 font-bold text-xs px-2 py-1 rounded focus:outline-none border border-slate-700" onchange="filterAndUpdate()">
+                <select id="yearSelect" class="bg-slate-900 dark:bg-slate-900 font-bold text-xs px-2 py-1 rounded focus:outline-none border border-slate-700 dark:border-slate-700" style="color: #22d6f1;" onchange="filterAndUpdate()">
                     <option value="ALL">Semua Tahun</option>
                 </select>
             </div>
-            <div class="flex items-center bg-slate-800 text-slate-200 px-3 py-1 rounded-lg border border-slate-700" id="periodBox">
+            <div class="flex items-center bg-slate-800 dark:bg-slate-800 text-slate-200 dark:text-slate-200 px-3 py-1 rounded-lg border border-slate-700 dark:border-slate-700 shadow-sm" id="periodBox">
                 <label for="periodSelect" class="text-xs mr-2 font-semibold"><i class="fa-solid fa-clock mr-1"></i> Periode:</label>
-                <select id="periodSelect" class="bg-slate-900 text-cyan-300 font-bold text-xs px-2 py-1 rounded focus:outline-none border border-slate-700" onchange="filterAndUpdate()">
+                <select id="periodSelect" class="bg-slate-900 dark:bg-slate-900 font-bold text-xs px-2 py-1 rounded focus:outline-none border border-slate-700 dark:border-slate-700" style="color: #22d6f1;" onchange="filterAndUpdate()">
                     <option value="ALL">Semua Periode</option>
                     <option value="1">Periode 1</option>
                     <option value="2">Periode 2</option>
@@ -84,22 +92,22 @@
             <div id="map" class="flex-1 w-full z-10 min-h-[45%]" style="background-color: #0b132b;"></div>
             
             <!-- Bottom Section: Complete Parameter Table -->
-            <div class="h-80 bg-slate-900 text-slate-100 border-t border-slate-800 flex flex-col shrink-0 z-20 transition-colors duration-300" id="tableContainer">
-                <div class="px-4 py-2 bg-slate-900/90 border-b border-slate-800 flex justify-between items-center transition-colors duration-300" id="tableHeaderBar">
-                    <h3 class="font-bold text-xs text-cyan-400 uppercase tracking-wider"><i class="fa-solid fa-table mr-1"></i> Tabel Parameter Kualitas Air Laut terhadap Status Kelayakan Terumbu Karang</h3>
+            <div class="h-80 bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 border-t border-slate-800 dark:border-slate-800 flex flex-col shrink-0 z-20 transition-colors duration-300 shadow-inner" id="tableContainer">
+                <div class="px-4 py-2 bg-slate-900/90 dark:bg-slate-900/90 border-b border-slate-800 dark:border-slate-800 flex justify-between items-center transition-colors duration-300" id="tableHeaderBar">
+                    <h3 class="font-bold text-xs uppercase tracking-wider" id="tableTitle" style="color: #22d6f1;"><i class="fa-solid fa-table mr-1"></i> Tabel Parameter Kualitas Air Laut terhadap Status Kelayakan Terumbu Karang</h3>
                     <div class="flex items-center space-x-3">
-                        <span id="tableCount" class="text-xs text-cyan-300 font-medium">Memuat data...</span>
+                        <span id="tableCount" class="text-xs font-medium" style="color: #22d6f1;">Memuat data...</span>
                         <div class="flex items-center space-x-1" id="paginationControls">
-                            <button onclick="prevPage()" id="prevBtn" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 px-2.5 py-0.5 rounded border border-slate-700 text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button onclick="prevPage()" id="prevBtn" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-0.5 rounded border border-slate-700 text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition" style="color: #22d6f1;"><i class="fa-solid fa-chevron-left"></i></button>
                             <span id="pageInfo" class="text-xs font-semibold px-1">1 / 1</span>
-                            <button onclick="nextPage()" id="nextBtn" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 px-2.5 py-0.5 rounded border border-slate-700 text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition"><i class="fa-solid fa-chevron-right"></i></button>
+                            <button onclick="nextPage()" id="nextBtn" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-0.5 rounded border border-slate-700 text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed transition" style="color: #22d6f1;"><i class="fa-solid fa-chevron-right"></i></button>
                         </div>
                     </div>
                 </div>
                 <div class="flex-1 overflow-auto p-2">
                     <table class="w-full text-left text-xs border-collapse" id="mainTable">
                         <thead>
-                            <tr class="bg-slate-800 text-cyan-300 sticky top-0 font-semibold z-10 transition-colors duration-300" id="tableHeadTr">
+                            <tr class="bg-slate-800 sticky top-0 font-semibold z-10 transition-colors duration-300" id="tableHeadTr" style="color: #22d6f1;">
                                 <th class="p-2.5 border-b border-slate-700">Kode</th>
                                 <th class="p-2.5 border-b border-slate-700">Nama Lokasi</th>
                                 <th class="p-2.5 border-b border-slate-700">Provinsi</th>
@@ -146,8 +154,8 @@
         <!-- Right Side: Interactive Chart Panel -->
         <aside class="w-[440px] bg-slate-900 text-slate-100 border-l border-slate-800 flex flex-col shrink-0 z-20 shadow-2xl transition-colors duration-300" id="rightAside">
             <div class="p-3 border-b border-slate-800 bg-slate-900/90 flex justify-between items-center transition-colors duration-300" id="asideHeader">
-                <h3 class="font-bold text-xs text-cyan-400 uppercase tracking-wider"><i class="fa-solid fa-chart-bar mr-1"></i> Grafik Rata-Rata vs Baku Mutu</h3>
-                <select id="paramSelect" class="bg-slate-800 text-cyan-300 font-semibold text-xs px-2 py-1 rounded border border-slate-700 focus:outline-none" onchange="updateChart()">
+                <h3 class="font-bold text-xs uppercase tracking-wider" id="asideTitle" style="color: #22d6f1;"><i class="fa-solid fa-chart-bar mr-1"></i> Grafik Nilai Parameter terhadap Baku Mutu</h3>
+                <select id="paramSelect" class="bg-slate-800 font-semibold text-xs px-2 py-1 rounded border border-slate-700 focus:outline-none" style="color: #22d6f1;" onchange="updateChart()">
                     <option value="SUHU" selected>Suhu (°C)</option>
                     <option value="SALINITAS">Salinitas (ppt)</option>
                     <option value="DO (mg/L)">DO (mg/L)</option>
@@ -173,7 +181,7 @@
                     </div>
                 </div>
                 <div class="bg-slate-800/80 p-3 rounded-lg border border-slate-700 space-y-1.5 text-xs transition-colors duration-300" id="infoCard">
-                    <p class="font-bold text-cyan-400 text-sm"><i class="fa-solid fa-circle-info mr-1"></i> Keterangan Grafik:</p>
+                    <p class="font-bold text-sm" id="infoTitle" style="color: #22d6f1;"><i class="fa-solid fa-circle-info mr-1"></i> Keterangan Grafik:</p>
                     <p class="text-xs font-medium" id="chartInfoText">Garis merah putus-putus menunjukkan batas <strong>Baku Mutu Maksimum/Minimum</strong> masing-masing parameter untuk ekosistem terumbu karang.</p>
                 </div>
             </div>
@@ -249,9 +257,10 @@
             if (!statusText) return '-';
             let clean = statusText.trim();
             if (clean.toLowerCase().includes('tidak')) {
-                return `<span class="text-red-400 font-bold">${clean}</span>`;
+                return `<span class="${isDarkMode ? 'text-red-400 font-bold' : 'text-red-600 font-bold'}">${clean}</span>`;
             } else if (clean.toLowerCase().includes('layak') || clean.toLowerCase().includes('sesuai')) {
-                return `<span class="text-cyan-400 font-semibold">${clean}</span>`;
+                let colorCode = isDarkMode ? '#22d6f1' : '#3188a1';
+                return `<span class="font-semibold" style="color: ${colorCode};">${clean}</span>`;
             }
             return clean;
         }
@@ -271,31 +280,81 @@
             const themeBtn = document.getElementById('themeBtn');
             const themeIcon = document.getElementById('themeIcon');
             const themeText = document.getElementById('themeText');
+            const yearBox = document.getElementById('yearBox');
+            const periodBox = document.getElementById('periodBox');
+            const yearSelect = document.getElementById('yearSelect');
+            const periodSelect = document.getElementById('periodSelect');
+            const paramSelect = document.getElementById('paramSelect');
+            
+            const headerTitleText = document.getElementById('headerTitleText');
+            const loadStatus = document.getElementById('loadStatus');
+            const tableTitle = document.getElementById('tableTitle');
+            const tableCount = document.getElementById('tableCount');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const asideTitle = document.getElementById('asideTitle');
+            const infoTitle = document.getElementById('infoTitle');
+
+            // Tentukan warna aktif berdasarkan theme
+            const activeColor = isDarkMode ? '#22d6f1' : '#3188a1';
+
+            // Terapkan warna dinamis
+            headerTitleText.style.color = activeColor;
+            loadStatus.style.color = activeColor;
+            themeBtn.style.color = activeColor;
+            yearSelect.style.color = activeColor;
+            periodSelect.style.color = activeColor;
+            paramSelect.style.color = activeColor;
+            tableTitle.style.color = activeColor;
+            tableCount.style.color = activeColor;
+            prevBtn.style.color = activeColor;
+            nextBtn.style.color = activeColor;
+            asideTitle.style.color = activeColor;
+            infoTitle.style.color = activeColor;
+            tableHeadTr.style.color = activeColor;
 
             if (isDarkMode) {
                 htmlRoot.classList.add('dark');
                 mainBody.className = "bg-slate-950 text-slate-100 flex flex-col h-screen overflow-hidden transition-colors duration-300";
                 topHeader.className = "bg-slate-900 text-slate-100 border-b border-slate-800 h-14 flex items-center justify-between px-6 z-20 shrink-0 transition-colors duration-300";
+                themeBtn.className = "bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 text-xs font-semibold flex items-center space-x-1.5 transition shadow";
+                yearBox.className = "flex items-center bg-slate-800 text-slate-200 px-3 py-1 rounded-lg border border-slate-700";
+                periodBox.className = "flex items-center bg-slate-800 text-slate-200 px-3 py-1 rounded-lg border border-slate-700";
+                yearSelect.className = "bg-slate-900 font-bold text-xs px-2 py-1 rounded focus:outline-none border border-slate-700";
+                periodSelect.className = "bg-slate-900 font-bold text-xs px-2 py-1 rounded focus:outline-none border border-slate-700";
+                paramSelect.className = "bg-slate-800 font-semibold text-xs px-2 py-1 rounded border border-slate-700 focus:outline-none";
+                
                 tableContainer.className = "h-80 bg-slate-900 text-slate-100 border-t border-slate-800 flex flex-col shrink-0 z-20 transition-colors duration-300";
                 tableHeaderBar.className = "px-4 py-2 bg-slate-900/90 border-b border-slate-800 flex justify-between items-center transition-colors duration-300";
-                tableHeadTr.className = "bg-slate-800 text-cyan-300 sticky top-0 font-semibold z-10 transition-colors duration-300";
+                tableHeadTr.className = "bg-slate-800 sticky top-0 font-semibold z-10 transition-colors duration-300";
+                
                 rightAside.className = "w-[440px] bg-slate-900 text-slate-100 border-l border-slate-800 flex flex-col shrink-0 z-20 shadow-2xl transition-colors duration-300";
                 asideHeader.className = "p-3 border-b border-slate-800 bg-slate-900/90 flex justify-between items-center transition-colors duration-300";
                 chartCard.className = "bg-slate-800/60 p-3 rounded-lg border border-slate-700 flex-1 flex flex-col transition-colors duration-300";
                 infoCard.className = "bg-slate-800/80 p-3 rounded-lg border border-slate-700 space-y-1.5 text-xs transition-colors duration-300";
+                
                 themeIcon.className = "fa-solid fa-moon";
                 themeText.innerText = "Mode Terang";
             } else {
                 htmlRoot.classList.remove('dark');
-                mainBody.className = "bg-slate-50 text-slate-800 flex flex-col h-screen overflow-hidden transition-colors duration-300";
-                topHeader.className = "bg-white text-slate-800 border-b border-slate-200 h-14 flex items-center justify-between px-6 z-20 shrink-0 transition-colors duration-300";
-                tableContainer.className = "h-80 bg-white text-slate-800 border-t border-slate-200 flex flex-col shrink-0 z-20 transition-colors duration-300";
-                tableHeaderBar.className = "px-4 py-2 bg-slate-100 border-b border-slate-200 flex justify-between items-center transition-colors duration-300";
-                tableHeadTr.className = "bg-slate-100 text-cyan-700 sticky top-0 font-semibold z-10 transition-colors duration-300";
-                rightAside.className = "w-[440px] bg-white text-slate-800 border-l border-slate-200 flex flex-col shrink-0 z-20 shadow-2xl transition-colors duration-300";
-                asideHeader.className = "p-3 border-b border-slate-200 bg-slate-100 flex justify-between items-center transition-colors duration-300";
-                chartCard.className = "bg-slate-50 p-3 rounded-lg border border-slate-200 flex-1 flex flex-col transition-colors duration-300";
-                infoCard.className = "bg-slate-100 p-3 rounded-lg border border-slate-200 space-y-1.5 text-xs transition-colors duration-300";
+                mainBody.className = "bg-slate-200 text-slate-900 flex flex-col h-screen overflow-hidden transition-colors duration-300";
+                topHeader.className = "bg-white text-slate-900 border-b border-slate-300 h-14 flex items-center justify-between px-6 z-20 shrink-0 transition-colors duration-300 shadow-sm";
+                themeBtn.className = "bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold flex items-center space-x-1.5 transition shadow-sm";
+                yearBox.className = "flex items-center bg-slate-100 text-slate-900 px-3 py-1 rounded-lg border border-slate-300 shadow-sm";
+                periodBox.className = "flex items-center bg-slate-100 text-slate-900 px-3 py-1 rounded-lg border border-slate-300 shadow-sm";
+                yearSelect.className = "bg-white font-bold text-xs px-2 py-1 rounded focus:outline-none border border-slate-300";
+                periodSelect.className = "bg-white font-bold text-xs px-2 py-1 rounded focus:outline-none border border-slate-300";
+                paramSelect.className = "bg-white font-bold text-xs px-2 py-1 rounded border border-slate-300 focus:outline-none";
+                
+                tableContainer.className = "h-80 bg-white text-slate-900 border-t border-slate-300 flex flex-col shrink-0 z-20 transition-colors duration-300 shadow-lg";
+                tableHeaderBar.className = "px-4 py-2 bg-slate-100 border-b border-slate-300 flex justify-between items-center transition-colors duration-300";
+                tableHeadTr.className = "bg-slate-200 sticky top-0 font-bold z-10 transition-colors duration-300 border-b border-slate-300";
+                
+                rightAside.className = "w-[440px] bg-white text-slate-900 border-l border-slate-300 flex flex-col shrink-0 z-20 shadow-2xl transition-colors duration-300";
+                asideHeader.className = "p-3 border-b border-slate-300 bg-slate-100 flex justify-between items-center transition-colors duration-300";
+                chartCard.className = "bg-slate-50 p-3 rounded-lg border border-slate-300 flex-1 flex flex-col transition-colors duration-300 shadow-sm";
+                infoCard.className = "bg-slate-100 p-3 rounded-lg border border-slate-300 space-y-1.5 text-xs transition-colors duration-300 shadow-sm";
+                
                 themeIcon.className = "fa-solid fa-sun";
                 themeText.innerText = "Mode Gelap";
             }
@@ -416,11 +475,12 @@
                     fillOpacity: 0.85
                 });
 
+                let popupTitleColor = isDarkMode ? '#22d6f1' : '#3188a1';
                 circleMarker.bindPopup(`
                     <div class="p-2 text-xs">
-                        <h4 class="font-bold text-cyan-400 text-sm mb-1">${p['NAMA LOKASI'] || 'Lokasi'} (${p['KODE LOKASI'] || ''})</h4>
-                        <p class="text-[11px] mb-2 font-medium">Provinsi: ${p['PROVINSI'] || '-'} | Tgl: ${p['TANGGAL PEMANTAUAN'] || '-'}</p>
-                        <div class="space-y-1.5 p-2.5 rounded-lg border max-h-64 overflow-y-auto ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}">
+                        <h4 class="font-bold text-sm mb-1" style="color: ${popupTitleColor};">${p['NAMA LOKASI'] || 'Lokasi'} (${p['KODE LOKASI'] || ''})</h4>
+                        <p class="text-[11px] mb-2 font-medium opacity-90">Provinsi: ${p['PROVINSI'] || '-'} | Tgl: ${p['TANGGAL PEMANTAUAN'] || '-'}</p>
+                        <div class="space-y-1.5 p-2.5 rounded-lg border max-h-64 overflow-y-auto ${isDarkMode ? 'bg-slate-950 border-slate-800 text-slate-100' : 'bg-slate-100 border-slate-300 text-slate-900 font-medium'}">
                             <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">TSS:</span> <span class="font-bold">${tss} mg/L</span> <span>${formatStatus(stTss)}</span></div>
                             <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">DO:</span> <span class="font-bold">${doVal} mg/L</span> <span>${formatStatus(stDo)}</span></div>
                             <div class="flex justify-between items-center border-b pb-1.5"><span class="opacity-75">Minyak & Lemak:</span> <span class="font-bold">${minyak} mg/L</span> <span>${formatStatus(stMinyak)}</span></div>
@@ -489,10 +549,13 @@
                 let dic = p['(DIC) DISSOLVED INORGANIC CARBON'] || '-';
                 let stDic = p['STATUS KELAYAKAN TERUMBU KARANG BERDASARKAN PARAMETER (DIC) DISSOLVED INORGANIC CARBON'] || '-';
 
-                let rowHoverClass = isDarkMode ? "hover:bg-slate-800/60 border-slate-800" : "hover:bg-slate-100 border-slate-200";
+                let rowHoverClass = isDarkMode ? "hover:bg-slate-800/60 border-slate-800 text-slate-200" : "hover:bg-slate-100 border-slate-200 text-slate-900 font-medium";
+                let codeColorStyle = isDarkMode ? "color: #22d6f1;" : "color: #3188a1;";
+                let btnStyle = isDarkMode ? "background-color: rgba(34, 214, 241, 0.2); color: #22d6f1;" : "background-color: #e0f2fe; color: #3188a1;";
+
                 tableHtml += `
                     <tr class="${rowHoverClass} cursor-pointer transition border-b" onclick="map.setView([${lat},${lon}], 11)">
-                        <td class="p-2.5 text-cyan-600 dark:text-cyan-400 font-bold">${p['KODE LOKASI'] || '-'}</td>
+                        <td class="p-2.5 font-bold" style="${codeColorStyle}">${p['KODE LOKASI'] || '-'}</td>
                         <td class="p-2.5 font-semibold">${p['NAMA LOKASI'] || '-'}</td>
                         <td class="p-2.5">${p['PROVINSI'] || '-'}</td>
                         <td class="p-2.5 text-center">${p['TANGGAL PEMANTAUAN'] || '-'}</td>
@@ -527,7 +590,7 @@
                         <td class="p-2.5 text-center">${dic}</td>
                         <td class="p-2.5 text-center">${formatStatus(stDic)}</td>
                         <td class="p-2.5 text-center">
-                            <button onclick="event.stopPropagation(); map.setView([${lat},${lon}], 12);" class="bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 px-2 py-1 rounded text-xs font-bold transition"><i class="fa-solid fa-location-dot"></i></button>
+                            <button onclick="event.stopPropagation(); map.setView([${lat},${lon}], 12);" class="px-2 py-1 rounded text-xs font-bold transition" style="${btnStyle}"><i class="fa-solid fa-location-dot"></i></button>
                         </td>
                     </tr>
                 `;
@@ -589,8 +652,8 @@
                         {
                             label: `Rata-rata ${selectedParam}`,
                             data: averages,
-                            backgroundColor: 'rgba(6, 182, 212, 0.7)',
-                            borderColor: 'rgba(6, 182, 212, 1)',
+                            backgroundColor: isDarkMode ? 'rgba(34, 214, 241, 0.7)' : 'rgba(49, 136, 161, 0.85)',
+                            borderColor: isDarkMode ? '#22d6f1' : '#3188a1',
                             borderWidth: 1
                         },
                         {
@@ -611,19 +674,19 @@
                     plugins: {
                         legend: {
                             labels: {
-                                color: isDarkMode ? '#f8fafc' : '#334155',
-                                font: { size: 10 }
+                                color: isDarkMode ? '#f8fafc' : '#1e293b',
+                                font: { size: 10, weight: 'bold' }
                             }
                         }
                     },
                     scales: {
                         x: {
-                            ticks: { color: isDarkMode ? '#94a3b8' : '#64748b', font: { size: 9 } },
-                            grid: { color: isDarkMode ? '#334155' : '#e2e8f0' }
+                            ticks: { color: isDarkMode ? '#94a3b8' : '#1e293b', font: { size: 9, weight: '600' } },
+                            grid: { color: isDarkMode ? '#334155' : '#cbd5e1' }
                         },
                         y: {
-                            ticks: { color: isDarkMode ? '#94a3b8' : '#64748b', font: { size: 10 } },
-                            grid: { color: isDarkMode ? '#334155' : '#e2e8f0' }
+                            ticks: { color: isDarkMode ? '#94a3b8' : '#1e293b', font: { size: 10, weight: '600' } },
+                            grid: { color: isDarkMode ? '#334155' : '#cbd5e1' }
                         }
                     }
                 }
